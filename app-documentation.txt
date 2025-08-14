@@ -1,0 +1,327 @@
+LONGVIBE APP - TECHNICAL DOCUMENTATION
+======================================
+
+PROJECT STRUCTURE
+-----------------
+This is a React Native app built with Expo and Expo Router, using NativeWind (Tailwind CSS for React Native) for styling.
+
+FILE-BASED ROUTING (Expo Router)
+---------------------------------
+The app uses Expo Router's file-based routing system. Each file in src/app/ automatically becomes a route:
+
+- src/app/index.tsx → "/" (home page)
+- src/app/chats.tsx → "/chats" 
+- src/app/map.tsx → "/map"
+- src/app/profile.tsx → "/profile"
+- src/app/_layout.tsx → Root layout wrapper
+
+NAVIGATION IMPLEMENTATION
+-------------------------
+1. Layout Configuration (_layout.tsx):
+   - Uses Stack navigator from expo-router
+   - Configured with slide_from_right animation
+   - Headers hidden globally (headerShown: false)
+   - Transparent background for smooth transitions
+
+2. Navigation Methods:
+   - router.push("/page") - Navigates forward, adds to navigation stack
+   - router.replace("/page") - Replaces current route without adding to stack
+   - router.back() - Goes back to previous route in stack
+
+3. Navigation Flow:
+   - From home: Uses router.push() to navigate to other pages (slides in from right)
+   - Back to home: Uses router.back() so home page stays underneath as base layer
+   - Between non-home pages: Uses router.push() for forward navigation
+
+FOOTER NAVIGATION
+-----------------
+Bottom tab bar implemented manually (not using tab navigator):
+- Home+Heart (⌂♡) - Combined home/love symbol
+- Chats (▭) - Chat/messages page
+- Map (○) - Location sharing page  
+- Profile (◔) - User profile page
+- Menu (☰) - Settings menu (not yet implemented)
+
+Active state indicated by full opacity (text-pink-400) vs inactive (text-pink-400/40)
+
+MAP INTEGRATION
+---------------
+Uses react-native-maps library for map functionality:
+
+Installation:
+npx expo install react-native-maps
+
+Implementation:
+- MapView component displays interactive map
+- initialRegion sets starting location and zoom level
+- Can add Marker components for location pins
+- Map styled with borderRadius for rounded corners
+- Height set to 500px in scrollable view
+
+MAP FEATURES (Planned):
+- "Wya pictures" - Photo upload with location tags
+- "Wya marker" - Drop pins for places visited
+- Location sharing between partners
+
+GRADIENT BACKGROUNDS
+--------------------
+Each page has unique LinearGradient from expo-linear-gradient:
+- Home: Pink gradient (#ffd4e5 → #d74894 → #831843 → #1a0512)
+- Profile: Purple gradient (#e4d4ff → #8748d7 → #431883 → #120a1a)
+- Chats: Green gradient (#4ade80 → #4ade80 → #166534 → #052e16)
+- Map: Pink gradient (same as home)
+
+Gradients positioned absolutely to fill entire screen behind content.
+
+GLASS MORPHISM EFFECT
+--------------------
+Transparent cards with borders create glass effect:
+- Background: rgba colors with low opacity (0.1-0.3)
+- Borders: Lighter color with higher opacity than background
+- Inner cards: Additional rgba layer for depth
+
+Example pattern:
+backgroundColor: "rgba(219,39,119,0.1)"
+borderColor: "rgba(255,182,193,0.25)"
+
+HEADER IMPLEMENTATION
+---------------------
+Headers extend to top of screen (no SafeAreaView gap on some pages):
+- paddingTop: 50 pushes content below status bar
+- Rounded bottom corners with borderBottomLeftRadius/borderBottomRightRadius
+- Semi-transparent background blends with gradient
+
+STATE MANAGEMENT
+----------------
+Currently no global state management implemented. Each component manages its own local state.
+Future implementation could use:
+- React Context API for sharing data between screens
+- Redux/Zustand for more complex state needs
+
+DEPENDENCIES
+------------
+Key packages installed:
+- expo-router: File-based routing
+- expo-linear-gradient: Background gradients
+- react-native-maps: Map functionality
+- nativewind: Tailwind CSS for React Native
+- expo-google-fonts (attempted but removed)
+
+STYLING APPROACH
+----------------
+Hybrid styling using:
+1. NativeWind classes (Tailwind): Basic layout, spacing, text styles
+2. Inline styles: Precise rgba colors, custom values not in Tailwind
+3. Style prop: Complex styles like gradients, absolute positioning
+
+NAVIGATION ANIMATIONS
+---------------------
+Stack navigator provides slide animations:
+- animation: "slide_from_right" - Pages slide in from right side
+- Content slides over previous screen rather than pushing it
+
+RESPONSIVE DESIGN
+-----------------
+- ScrollView used for content that may overflow
+- SafeAreaView handles iPhone notch/dynamic island (selectively used)
+- Flexible layouts with flex-1 for full height utilization
+
+FUTURE CONSIDERATIONS
+---------------------
+1. Authentication system for partner pairing
+2. Real-time data sync between partners (Firebase/Supabase)
+3. Push notifications for mood changes
+4. Image upload/storage for photos
+5. Actual location services integration
+6. WebSocket connection for live updates
+
+Links in InstantDB are how you define relationships
+  between different entities (like foreign keys in
+  traditional databases). They create connections
+  between your data tables.
+
+  Here's what each link does:
+
+  1. userRelationships
+
+  userRelationships: {
+    forward: { on: "relationships", has: "one", label:
+   "owner" },
+    reverse: { on: "$users", has: "many", label:
+  "relationships" },
+  }
+  - Each relationship has one owner (a user)
+  - Each user can have many relationships
+  - Example: You can have relationships with Mariam,
+  Sarah, etc.
+
+  2. userFriendships
+
+  userFriendships: {
+    forward: { on: "friendships", has: "one", label:
+  "owner" },
+    reverse: { on: "$users", has: "many", label:
+  "friendships" },
+  }
+  - Each friendship has one owner (a user)
+  - Each user can have many friendships
+  - Example: You can have multiple friends
+
+  3. userGroups
+
+  userGroups: {
+    forward: { on: "groups", has: "many", label:
+  "members" },
+    reverse: { on: "$users", has: "many", label:
+  "groups" },
+  }
+  - Each group can have many members (users)
+  - Each user can be in many groups
+  - Example: You can be in "Double Dates" group and
+  "Party Planning" group
+
+  How to use links:
+
+  When you create data, you can link entities:
+  // Create a relationship and link it to the current 
+  user
+  db.transact(
+    db.tx.relationships[id()]
+      .update({
+        name: "Mariam",
+        type: "romantic",
+        mood: "happy",
+        emoji: "💕"
+      })
+      .link({ owner: userId })
+  )
+
+  When you query data, you can include linked data:
+  // Get all relationships for the current user
+  const { data } = db.useQuery({
+    relationships: {
+      $: { where: { "owner.id": userId } }
+    }
+  })
+
+  Links make it easy to connect and query related data
+   without manually managing IDs!
+
+INSTANTDB INTEGRATION
+---------------------
+The app uses InstantDB for real-time data synchronization and user management.
+
+Schema Structure (instant.schema.ts):
+1. **$users** - System entity for authenticated users
+   - email: unique indexed string
+   - name: optional string
+
+2. **relationships** - Romantic partner connections
+   - name, type, emoji, mood, note, createdAt
+   - Linked to user (one-to-many)
+
+3. **friendships** - Friend connections
+   - name, type, emoji, status, lastSeen, createdAt
+   - Linked to user (one-to-many)
+
+4. **groups** - Group chats
+   - name, type, memberCount, emoji, createdAt
+   - Linked to users (many-to-many)
+
+5. **choice** - Current active selection for home page
+   - activeType: "relationship", "friendship", or "group"
+   - activeId: ID of selected entity
+   - activeName: Display name
+   - activeEmoji: Display emoji
+   - updatedAt: Last update timestamp
+   - Linked to user (one-to-one)
+
+CHAT SELECTION IMPLEMENTATION (chats.tsx)
+------------------------------------------
+When a user clicks on a chat item (e.g., Mariam, Sarah, Double Dates):
+
+1. **handleSelectChat Function**:
+   ```javascript
+   const handleSelectChat = async (type, name, emoji, chatId) => {
+     // Check if user already has a choice record
+     const { data } = await db.queryOnce({
+       choice: { $: { where: { "owner.id": user.id } } }
+     });
+     
+     // Use existing choice ID or generate new UUID
+     const existingChoice = data?.choice?.[0];
+     const choiceId = existingChoice?.id || id();
+     
+     // Update or create choice record
+     await db.transact(
+       db.tx.choice[choiceId]
+         .update({ activeType, activeId, activeName, activeEmoji, updatedAt })
+         .link({ owner: user.id })
+     );
+     
+     // Navigate to home page
+     router.replace("/");
+   }
+   ```
+
+2. **UUID Requirement**:
+   - InstantDB requires valid UUIDs for all entity IDs
+   - Cannot use custom strings like "userId-choice"
+   - Must use id() function to generate UUIDs
+   - Solution: Query existing choice first, reuse ID if exists
+
+3. **Each Chat Item**:
+   - Has onPress handler calling handleSelectChat
+   - Passes appropriate type, name, emoji, and optional ID
+   - Disabled during loading to prevent double-clicks
+
+HOME PAGE ADAPTATION (index.tsx)
+---------------------------------
+To display the selected person/group on home page:
+
+1. Query the user's choice:
+   ```javascript
+   const { data } = db.useQuery({
+     choice: { $: { where: { "owner.id": user.id } } }
+   });
+   const currentChoice = data?.choice?.[0];
+   ```
+
+2. Display based on activeType:
+   - If "relationship": Show romantic theme with mood/notes
+   - If "friendship": Show friend status and casual theme
+   - If "group": Show group member count and group theme
+
+3. Dynamic Content:
+   - Replace hardcoded "Mariam" with currentChoice?.activeName
+   - Use currentChoice?.activeEmoji for visual indicators
+   - Adjust color schemes based on activeType
+
+AUTHENTICATION FLOW
+-------------------
+1. **db.useAuth()** - Main authentication hook
+   - Returns { user, isLoading, error }
+   - Must be used at top level (not inside conditionals)
+   - Checks authentication status
+
+2. **Login Component** (login.tsx):
+   - Email magic code authentication
+   - Two-step process: email → verification code
+   - Uses db.auth.sendMagicCode() and signInWithMagicCode()
+
+3. **Protected Routes**:
+   - Check isLoading state first
+   - Show login if !user
+   - Show main app if user exists
+
+4. **Sign Out**:
+   - Menu button (☰) calls db.auth.signOut()
+   - Automatically redirects to login
+
+DATA PERSISTENCE
+----------------
+- All data syncs in real-time across devices
+- Changes persist in InstantDB cloud
+- Offline support with automatic sync when reconnected
+- No need for local storage management
+

@@ -1,0 +1,351 @@
+LONGVIBE APP - COMPLETE FUNCTIONS GUIDE
+========================================
+
+TABLE OF CONTENTS
+-----------------
+1. Authentication Functions
+2. Chat Management Functions
+3. Navigation Functions
+4. Theme & Display Functions
+5. Photo Management Functions
+6. Database Schema
+7. User Flows
+
+========================================
+1. AUTHENTICATION FUNCTIONS
+========================================
+
+Location: src/app/login.tsx
+----------------------------
+PURPOSE: Handle user authentication with magic code (passwordless login)
+
+FUNCTIONS:
+- EmailStep component
+  - Collects user email
+  - Calls db.auth.sendMagicCode({ email })
+  - Sends verification code to email
+
+- CodeStep component  
+  - Collects 6-digit verification code
+  - Calls db.auth.signInWithMagicCode({ email, code })
+  - Signs user in or creates new account
+
+Location: src/app/index.tsx
+----------------------------
+- db.useAuth()
+  - Returns { user, isLoading }
+  - Checks if user is logged in
+  - Shows login screen if not authenticated
+
+Location: src/app/db.ts
+-----------------------
+- Initializes InstantDB with APP_ID and schema
+- Exports db instance used throughout app
+
+========================================
+2. CHAT MANAGEMENT FUNCTIONS
+========================================
+
+Location: src/app/chats.tsx
+----------------------------
+PURPOSE: Display and manage all chats (relationships, friendships, groups)
+
+FUNCTIONS:
+- handleSelectChat(type, name, emoji, chatId)
+  - Sets a chat as the active selection
+  - Updates the "choice" table in InstantDB
+  - Navigates back to home page
+  - Home page theme changes based on selection
+
+- handleDelete()
+  - Deletes chat from appropriate table (relationships/friendships/groups)
+  - Clears choice if deleted chat was selected
+  - Removes from InstantDB permanently
+  - Updates UI immediately
+
+DATA QUERIES:
+- Queries all relationships where user is owner
+- Queries all friendships where user is owner  
+- Queries all groups where user is member
+- Displays with photo or emoji
+
+Location: src/app/add-chat.tsx
+-------------------------------
+PURPOSE: Create new chats with photos
+
+FUNCTIONS:
+- handleCreate()
+  - Checks relationship limit (max 1)
+  - Creates new entity in appropriate table
+  - Saves: name, emoji, photo, type, timestamps
+  - Links to current user
+  - Returns to chats page
+
+- pickImage()
+  - Opens device photo gallery
+  - Allows photo selection and cropping (1:1 aspect)
+  - Converts to base64 for storage
+  - Shows preview after selection
+
+LIMITS:
+- Relationships: Maximum 1 (enforced)
+- Friendships: Unlimited
+- Groups: Unlimited
+
+Location: src/utils/shared.tsx
+-------------------------------
+PURPOSE: Reusable functions across pages
+
+- handleSelectChat(db, user, type, name, emoji, chatId, onSuccess)
+  - Shared logic for chat selection
+  - Query existing choice or create new
+  - Update choice with new selection
+  - Call onSuccess callback (usually navigation)
+
+- handleDeleteChat(db, type, chatId, onSuccess)  
+  - Generic delete function
+  - Determines entity type and deletes
+  - Currently not fully used (chats.tsx has own implementation)
+
+========================================
+3. NAVIGATION FUNCTIONS
+========================================
+
+Location: All pages
+-------------------
+- router.push("/page")
+  - Navigate forward, adds to stack
+  - Page slides in from right
+
+- router.back()
+  - Go back to previous page
+  - Prevents slide animation issues
+  - Used when selecting chats
+
+- router.replace("/page")
+  - Replace current route
+  - No back stack entry
+
+PAGES:
+- "/" - Home page (shows selected person)
+- "/chats" - Chat selection page
+- "/add-chat" - Add new chat page
+- "/map" - Location sharing
+- "/profile" - User profile
+- "/login" - Authentication
+- "/tools-chats/[name]" - Various tool pages
+
+========================================
+4. THEME & DISPLAY FUNCTIONS
+========================================
+
+Location: src/utils/shared.tsx
+-------------------------------
+- GradientBackground({ colors })
+  - Renders full-screen gradient
+  - Used on every page
+
+- themes object
+  - Complete color schemes for each type:
+    * relationship: Pink theme
+    * friendship: Blue theme  
+    * group: Green theme
+  - Includes: gradients, borders, text colors, footer colors
+
+Location: src/app/index.tsx
+----------------------------
+- getActiveChat()
+  - Finds the actual chat data based on choice
+  - Returns relationship/friendship/group entity
+  - Used to display photo and details
+
+- Dynamic theming
+  - Theme changes based on choice.activeType
+  - All UI elements update colors
+  - Smooth visual feedback
+
+========================================
+5. PHOTO MANAGEMENT FUNCTIONS
+========================================
+
+Location: src/app/add-chat.tsx
+-------------------------------
+- Photo Upload Flow:
+  1. User taps photo area
+  2. pickImage() opens gallery
+  3. User selects and crops photo
+  4. Photo converted to base64 data URL
+  5. Stored in photo field in database
+  6. Syncs across devices
+
+Display Logic:
+- If photo exists: Show photo
+- If no photo: Show emoji
+- Circle display in chats list
+- Large circle in home header
+
+Storage:
+- Photos stored as base64 strings
+- Part of entity data (relationships/friendships/groups)
+- No separate file storage needed
+
+========================================
+6. DATABASE SCHEMA (InstantDB)
+========================================
+
+Location: src/instant.schema.ts
+--------------------------------
+
+ENTITIES:
+
+$users (system table)
+- email: string (unique, indexed)
+- name: string (optional)
+
+relationships
+- name: string
+- type: string ("romantic")
+- emoji: string (optional)
+- photo: string (optional, base64)
+- mood: string (optional)
+- note: string (optional)
+- createdAt: number
+
+friendships
+- name: string
+- type: string ("friend")
+- emoji: string (optional)
+- photo: string (optional, base64)
+- status: string (optional)
+- lastSeen: number (optional)
+- createdAt: number
+
+groups
+- name: string
+- type: string ("group")
+- memberCount: number
+- emoji: string (optional)
+- photo: string (optional, base64)
+- createdAt: number
+
+choice
+- activeType: string ("relationship"/"friendship"/"group")
+- activeId: string (UUID of selected entity)
+- activeName: string
+- activeEmoji: string (optional)
+- updatedAt: number
+
+LINKS (Relationships between tables):
+- userRelationships: User owns many relationships
+- userFriendships: User owns many friendships
+- userGroups: User is member of many groups
+- userChoice: User has one current choice
+
+========================================
+7. USER FLOWS
+========================================
+
+FIRST TIME USER:
+1. Open app → See login screen
+2. Enter email → Receive code
+3. Enter code → Account created
+4. Redirected to home (no selection)
+5. Tap chats → Empty lists
+6. Tap + → Add first chat
+7. Select type, name, photo, emoji
+8. Create → Returns to chats
+9. See new chat in list
+10. Tap to select → Home updates
+
+RETURNING USER:
+1. Open app → Auto logged in
+2. See last selected person/group
+3. Background color matches type
+4. Can switch between chats
+5. Long-press to delete
+
+ADDING RELATIONSHIP (with limit):
+1. Already has 1 relationship
+2. Tap + in chats
+3. Relationship button shows "(Full)"
+4. Cannot select relationship type
+5. Defaults to friendship
+6. Can only add friends or groups
+
+DELETING CHAT:
+1. Long-press any chat item
+2. Custom alert appears
+3. Tap Delete
+4. Chat removed from database
+5. If was selected, home clears
+6. List updates immediately
+
+PHOTO MANAGEMENT:
+1. When adding chat, tap photo area
+2. Select from gallery
+3. Crop to square
+4. See preview
+5. Can change before saving
+6. Photo shows in chat list
+7. Photo shows in home header
+8. Falls back to emoji if no photo
+
+========================================
+KEY FEATURES & LIMITS
+========================================
+
+LIMITS:
+✅ 1 Relationship maximum (enforced)
+✅ Unlimited friendships
+✅ Unlimited groups
+✅ Photos optional (emoji fallback)
+
+REAL-TIME SYNC:
+✅ All data syncs via InstantDB
+✅ Works offline with sync later
+✅ Multi-device support
+✅ No manual save needed
+
+VISUAL FEEDBACK:
+✅ Dynamic color themes
+✅ Loading states
+✅ Error messages
+✅ Disabled states
+✅ Custom alerts
+
+NAVIGATION:
+✅ File-based routing
+✅ Smooth animations
+✅ Back button behavior
+✅ Footer navigation
+
+========================================
+TROUBLESHOOTING
+========================================
+
+COMMON ISSUES:
+
+"Invalid UUID error"
+- Use id() function from InstantDB
+- Don't create custom ID strings
+- Query existing before creating new
+
+"useAuth must be in protected route"
+- Use db.useAuth() not db.useUser()
+- Check isLoading before rendering
+- Return login if no user
+
+"Photo not showing"
+- Check base64 format is correct
+- Ensure photo field in schema
+- Verify data is querying correctly
+
+"Delete not working"
+- Ensure type is passed to alert
+- Check entity exists before delete
+- Clear choice if was selected
+
+"Theme not changing"
+- Query all entity types in index
+- Check activeType in choice
+- Ensure theme object has all types

@@ -1,94 +1,304 @@
-import { Link } from "expo-router";
 import React from "react";
-import { Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { View, Text, TouchableOpacity, Image, ScrollView } from "react-native";
+import { router } from "expo-router";
+import db from "./db";
+import Login from "./login";
+import { GradientBackground, themes } from "../utils/shared";
 
-export default function Page() {
-  return (
-    <View className="flex flex-1">
-      <Header />
-      <Content />
-      <Footer />
-    </View>
-  );
-}
+export default function Home() {
+  const { user, isLoading } = db.useAuth();
+  const { data: choiceData } = db.useQuery({
+    choice: user ? { $: { where: { "owner.id": user.id } } } : {},
+    relationships: user ? { $: { where: { "owner.id": user.id } } } : {},
+    friendships: user ? { $: { where: { "owner.id": user.id } } } : {},
+    groups: user ? { $: { where: { "members.id": user.id } } } : {},
+  });
+  const choice = choiceData?.choice?.[0];
+  
+  // Get the actual chat data with photo
+  const getActiveChat = () => {
+    if (!choice) return null;
+    
+    if (choice.activeType === "relationship") {
+      return choiceData?.relationships?.find(r => r.id === choice.activeId);
+    } else if (choice.activeType === "friendship") {
+      return choiceData?.friendships?.find(f => f.id === choice.activeId);
+    } else if (choice.activeType === "group") {
+      return choiceData?.groups?.find(g => g.id === choice.activeId);
+    }
+    return null;
+  };
+  
+  const activeChat = getActiveChat();
+  const theme = themes[choice?.activeType] || themes.relationship;
+  if (isLoading) {
+    return (
+      <View className="flex-1">
+        <GradientBackground colors={themes.relationship.gradient} />
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-white text-xl">Loading...</Text>
+        </View>
+      </View>
+    );
+  }
 
-function Content() {
+  if (!user) {
+    return <Login />;
+  }
+
   return (
     <View className="flex-1">
-      <View className="py-12 md:py-24 lg:py-32 xl:py-48">
-        <View className="px-4 md:px-6">
-          <View className="flex flex-col items-center gap-4 text-center">
-            <Text
-              role="heading"
-              className="text-3xl text-center native:text-5xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl"
-            >
-              Welcome to Project ACME
-            </Text>
-            <Text className="mx-auto max-w-[700px] text-lg text-center text-gray-500 md:text-xl dark:text-gray-400">
-              Discover and collaborate on acme. Explore our services now.
-            </Text>
+      <GradientBackground colors={theme.gradient} />
 
-            <View className="gap-4">
-              <Link
-                suppressHighlighting
-                className="flex h-9 items-center justify-center overflow-hidden rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-gray-50 web:shadow ios:shadow transition-colors hover:bg-gray-900/90 active:bg-gray-400/90 web:focus-visible:outline-none web:focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-50/90 dark:focus-visible:ring-gray-300"
-                href="/"
-              >
-                Explore
-              </Link>
+      <View
+        style={{
+          backgroundColor: theme.header,
+          borderBottomLeftRadius: 30,
+          borderBottomRightRadius: 30,
+          borderWidth: 1,
+          borderColor: theme.headerBorder,
+        }}
+        className="w-full h-40 shadow-xl z-10"
+      >
+        <View className="flex-1 items-end flex-row pb-4">
+          <View className="flex-row items-center">
+            <View
+              className={`w-24 h-24 rounded-full mx-4 overflow-hidden border-4 ${theme.borderAccent}`}
+            >
+              {activeChat?.photo ? (
+                <Image
+                  source={{ uri: activeChat.photo }}
+                  style={{ width: "100%", height: "100%" }}
+                />
+              ) : (
+                <View className="w-full h-full bg-white/10 items-center justify-center">
+                  <Text className="text-5xl">{activeChat?.emoji || choice?.activeEmoji || "💕"}</Text>
+                </View>
+              )}
+            </View>
+            <View className="flex-1">
+              <Text className="text-4xl text-white font-bold">
+                {choice?.activeName || "No Selection"}
+              </Text>
+              <Text className={`text-sm ${theme.textLight} mt-1`}>
+                {choice
+                  ? `Connected ${choice.activeEmoji || "💕"}`
+                  : "Select a chat"}
+              </Text>
             </View>
           </View>
         </View>
       </View>
-    </View>
-  );
-}
 
-function Header() {
-  const { top } = useSafeAreaInsets();
-  return (
-    <View style={{ paddingTop: top }}>
-      <View className="px-4 lg:px-6 h-14 flex items-center flex-row justify-between ">
-        <Link className="font-bold flex-1 items-center justify-center" href="/">
-          ACME
-        </Link>
-        <View className="flex flex-row gap-4 sm:gap-6">
-          <Link
-            className="text-md font-medium hover:underline web:underline-offset-4"
-            href="/"
+      <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
+        <View className="w-full items-center my-6">
+          <Text className={`text-2xl font-bold p-2 ${theme.text} mb-3`}>
+            {choice?.activeName || "Select"}'s mood
+          </Text>
+          <View
+            style={{
+              backgroundColor: theme.card,
+              borderRadius: 24,
+              borderWidth: 1,
+              borderColor: theme.cardBorder,
+            }}
+            className="w-full p-5 shadow-xl"
           >
-            About
-          </Link>
-          <Link
-            className="text-md font-medium hover:underline web:underline-offset-4"
-            href="/"
-          >
-            Product
-          </Link>
-          <Link
-            className="text-md font-medium hover:underline web:underline-offset-4"
-            href="/"
-          >
-            Pricing
-          </Link>
+            <View className="flex-row">
+              <View className="flex-1 items-center">
+                <Text
+                  className={`font-semibold text-lg ${theme.textMedium} mb-3`}
+                >
+                  Expression
+                </Text>
+                <Text className="text-7xl">😽</Text>
+              </View>
+              <View className="flex-1 items-center px-3">
+                <Text
+                  className={`font-semibold text-lg ${theme.textMedium} mb-3`}
+                >
+                  Note
+                </Text>
+                <Text className="text-white/80 text-center text-sm leading-5">
+                  You are the goat and i love you and blablabla hope you have a
+                  good day ml
+                </Text>
+              </View>
+            </View>
+          </View>
         </View>
-      </View>
-    </View>
-  );
-}
 
-function Footer() {
-  const { bottom } = useSafeAreaInsets();
-  return (
-    <View
-      className="flex shrink-0 bg-gray-100 native:hidden"
-      style={{ paddingBottom: bottom }}
-    >
-      <View className="py-6 flex-1 items-start px-4 md:px-6 ">
-        <Text className={"text-center text-gray-700"}>
-          © {new Date().getFullYear()} Me
-        </Text>
+        <View className="w-full items-center my-6">
+          <Text className={`text-2xl font-bold p-2 ${theme.text} mb-3`}>
+            Tools
+          </Text>
+          <View
+            style={{
+              backgroundColor: theme.card,
+              borderRadius: 24,
+              borderWidth: 1,
+              borderColor: theme.cardBorder,
+            }}
+            className="w-full p-5 shadow-xl"
+          >
+            <TouchableOpacity
+              style={{
+                backgroundColor: theme.innerCard,
+                borderColor: theme.innerCardBorder,
+              }}
+              className="flex-row items-center justify-between mb-4 rounded-xl p-4 border"
+              onPress={() => {
+                router.push("./tools-chats/fingerTap");
+              }}
+            >
+              <View className="flex-row items-center">
+                <Text className="text-4xl mr-4">👆</Text>
+                <Text className={`font-semibold text-lg ${theme.textMedium}`}>
+                  FingerTap
+                </Text>
+              </View>
+              <Text className={`${theme.textAccent} text-2xl`}>›</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: theme.innerCard,
+                borderColor: theme.innerCardBorder,
+              }}
+              className="flex-row items-center justify-between mb-4 rounded-xl p-4 border"
+              onPress={() => {
+                router.push("/tools-chats/lovenotes");
+              }}
+            >
+              <View className="flex-row items-center">
+                <Text className="text-4xl mr-4">💌</Text>
+                <Text className={`font-semibold text-lg ${theme.textMedium}`}>
+                  Love Notes
+                </Text>
+              </View>
+              <Text className={`${theme.textAccent} text-2xl`}>›</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
+              className="flex-row items-center justify-between rounded-xl p-4 border border-pink-200/30"
+            >
+              <View className="flex-row items-center">
+                <Text className="text-4xl mr-4">🎮</Text>
+                <Text className={`font-semibold text-lg ${theme.textMedium}`}>
+                  Games
+                </Text>
+              </View>
+              <Text className={`${theme.textAccent} text-2xl`}>›</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View className="w-full items-center my-6">
+          <Text className={`text-2xl font-bold p-2 ${theme.text} mb-3`}>
+            Chats
+          </Text>
+          <View
+            style={{
+              backgroundColor: theme.card,
+              borderRadius: 24,
+              borderWidth: 1,
+              borderColor: theme.cardBorder,
+            }}
+            className="w-full p-5 shadow-xl"
+          >
+            <TouchableOpacity
+              style={{
+                backgroundColor: theme.innerCard,
+                borderColor: theme.innerCardBorder,
+              }}
+              className="flex-row items-center justify-between mb-4 rounded-xl p-4 border"
+            >
+              <View className="flex-row items-center">
+                <Text className="text-4xl mr-4">🌟</Text>
+                <Text className={`font-semibold text-lg ${theme.textMedium}`}>
+                  Star Gazing
+                </Text>
+              </View>
+              <Text className={`${theme.textAccent} text-2xl`}>›</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: theme.innerCard,
+                borderColor: theme.innerCardBorder,
+              }}
+              className="flex-row items-center justify-between mb-4 rounded-xl p-4 border"
+            >
+              <View className="flex-row items-center">
+                <Text className="text-4xl mr-4">📅</Text>
+                <Text className={`font-semibold text-lg ${theme.textMedium}`}>
+                  Future Planning
+                </Text>
+              </View>
+              <Text className={`${theme.textAccent} text-2xl`}>›</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
+              className="flex-row items-center justify-between rounded-xl p-4 border border-pink-200/30"
+            >
+              <View className="flex-row items-center">
+                <View className="bg-red-500/80 rounded-md px-2 py-0.5 mr-3">
+                  <Text className="text-white text-xs font-bold">18+</Text>
+                </View>
+                <Text className="text-4xl mr-3">🔥</Text>
+                <Text className={`font-semibold text-lg ${theme.textMedium}`}>
+                  Spicy Convo
+                </Text>
+              </View>
+              <Text className={`${theme.textAccent} text-2xl`}>›</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View className="h-32" />
+      </ScrollView>
+
+      <View
+        style={{
+          backgroundColor: theme.footer,
+          borderTopWidth: 1,
+          borderTopColor: theme.footerBorder,
+        }}
+        className="bottom-0 left-0 right-0"
+      >
+        <View className="flex-row justify-around items-center py-4 pb-8">
+          <TouchableOpacity className="items-center px-4">
+            <Text className={`text-2xl ${theme.textAccent}`}>⌂♡</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="items-center px-4"
+            onPress={() => {
+              router.push("/chats");
+            }}
+          >
+            <Text className={`text-2xl ${theme.textAccent}/40`}>▭</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="items-center px-4"
+            onPress={() => router.push("/map")}
+          >
+            <Text className={`text-2xl ${theme.textAccent}/40`}>○</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="items-center px-4"
+            onPress={() => router.push("/profile")}
+          >
+            <Text className={`text-2xl ${theme.textAccent}/40`}>◔</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="items-center px-4"
+            onPress={() => db.auth.signOut()}
+          >
+            <Text className={`text-2xl ${theme.textAccent}/40`}>☰</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
