@@ -1,4 +1,4 @@
-import React from "react";
+import React, { use, useState } from "react";
 import { View, Text, TouchableOpacity, Image, ScrollView } from "react-native";
 import { router } from "expo-router";
 import db from "./db";
@@ -14,21 +14,20 @@ export default function Home() {
     groups: user ? { $: { where: { "members.id": user.id } } } : {},
   });
   const choice = choiceData?.choice?.[0];
-  
-  // Get the actual chat data with photo
+
   const getActiveChat = () => {
     if (!choice) return null;
-    
+
     if (choice.activeType === "relationship") {
-      return choiceData?.relationships?.find(r => r.id === choice.activeId);
+      return choiceData?.relationships?.find((r) => r.id === choice.activeId);
     } else if (choice.activeType === "friendship") {
-      return choiceData?.friendships?.find(f => f.id === choice.activeId);
+      return choiceData?.friendships?.find((f) => f.id === choice.activeId);
     } else if (choice.activeType === "group") {
-      return choiceData?.groups?.find(g => g.id === choice.activeId);
+      return choiceData?.groups?.find((g) => g.id === choice.activeId);
     }
     return null;
   };
-  
+
   const activeChat = getActiveChat();
   const theme = themes[choice?.activeType] || themes.relationship;
   if (isLoading) {
@@ -63,16 +62,19 @@ export default function Home() {
         <View className="flex-1 items-end flex-row pb-4">
           <View className="flex-row items-center">
             <View
-              className={`w-24 h-24 rounded-full mx-4 overflow-hidden border-4 ${theme.borderAccent}`}
+              className={`w-24 h-24 rounded-full mx-4 border-4 ${theme.borderAccent}`}
+              style={{ overflow: 'visible' }}
             >
               {activeChat?.photo ? (
                 <Image
                   source={{ uri: activeChat.photo }}
-                  style={{ width: "100%", height: "100%" }}
+                  style={{ width: "100%", height: "100%", borderRadius: 48 }}
                 />
               ) : (
-                <View className="w-full h-full bg-white/10 items-center justify-center">
-                  <Text className="text-5xl">{activeChat?.emoji || choice?.activeEmoji || "💕"}</Text>
+                <View className="w-full h-full bg-white/10 items-center justify-center rounded-full">
+                  <Text className="text-5xl" style={{ includeFontPadding: false }}>
+                    {activeChat?.emoji || choice?.activeEmoji || "💕"}
+                  </Text>
                 </View>
               )}
             </View>
@@ -111,7 +113,7 @@ export default function Home() {
                 >
                   Expression
                 </Text>
-                <Text className="text-7xl">😽</Text>
+                <Text className="text-7xl" style={{ lineHeight: 112 }}>😽</Text>
               </View>
               <View className="flex-1 items-center px-3">
                 <Text
@@ -160,28 +162,52 @@ export default function Home() {
               <Text className={`${theme.textAccent} text-2xl`}>›</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={{
-                backgroundColor: theme.innerCard,
-                borderColor: theme.innerCardBorder,
-              }}
-              className="flex-row items-center justify-between mb-4 rounded-xl p-4 border"
-              onPress={() => {
-                router.push("/tools-chats/lovenotes");
-              }}
-            >
-              <View className="flex-row items-center">
-                <Text className="text-4xl mr-4">💌</Text>
-                <Text className={`font-semibold text-lg ${theme.textMedium}`}>
-                  Love Notes
-                </Text>
-              </View>
-              <Text className={`${theme.textAccent} text-2xl`}>›</Text>
-            </TouchableOpacity>
+            {choice?.activeType === "relationship" ? (
+              <TouchableOpacity
+                style={{
+                  backgroundColor: theme.innerCard,
+                  borderColor: theme.innerCardBorder,
+                }}
+                className="flex-row items-center justify-between mb-4 rounded-xl p-4 border"
+                onPress={() => {
+                  router.push("/tools-chats/lovenotes");
+                }}
+              >
+                <View className="flex-row items-center">
+                  <Text className="text-4xl mr-4">💌</Text>
+                  <Text className={`font-semibold text-lg ${theme.textMedium}`}>
+                    Love Notes
+                  </Text>
+                </View>
+                <Text className={`${theme.textAccent} text-2xl`}>›</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={{
+                  backgroundColor: theme.innerCard,
+                  borderColor: theme.innerCardBorder,
+                }}
+                className="flex-row items-center justify-between mb-4 rounded-xl p-4 border"
+                onPress={() => {
+                  router.push("/tools-chats/notes");
+                }}
+              >
+                <View className="flex-row items-center">
+                  <Text className="text-4xl mr-4">📝</Text>
+                  <Text className={`font-semibold text-lg ${theme.textMedium}`}>
+                    Notes
+                  </Text>
+                </View>
+                <Text className={`${theme.textAccent} text-2xl`}>›</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
               className="flex-row items-center justify-between rounded-xl p-4 border border-pink-200/30"
+              onPress={() => {
+                router.push("./tools-chats/games");
+              }}
             >
               <View className="flex-row items-center">
                 <Text className="text-4xl mr-4">🎮</Text>
@@ -215,6 +241,22 @@ export default function Home() {
               className="flex-row items-center justify-between mb-4 rounded-xl p-4 border"
             >
               <View className="flex-row items-center">
+                <Text className="text-4xl mr-4">💬</Text>
+                <Text className={`font-semibold text-lg ${theme.textMedium}`}>
+                  Message
+                </Text>
+              </View>
+              <Text className={`${theme.textAccent} text-2xl`}>›</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: theme.innerCard,
+                borderColor: theme.innerCardBorder,
+              }}
+              className="flex-row items-center justify-between mb-4 rounded-xl p-4 border"
+            >
+              <View className="flex-row items-center">
                 <Text className="text-4xl mr-4">🌟</Text>
                 <Text className={`font-semibold text-lg ${theme.textMedium}`}>
                   Star Gazing
@@ -239,21 +281,23 @@ export default function Home() {
               <Text className={`${theme.textAccent} text-2xl`}>›</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
-              className="flex-row items-center justify-between rounded-xl p-4 border border-pink-200/30"
-            >
-              <View className="flex-row items-center">
-                <View className="bg-red-500/80 rounded-md px-2 py-0.5 mr-3">
-                  <Text className="text-white text-xs font-bold">18+</Text>
+            {choice?.activeType === "relationship" ? (
+              <TouchableOpacity
+                style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
+                className="flex-row items-center justify-between rounded-xl p-4 border border-pink-200/30"
+              >
+                <View className="flex-row items-center">
+                  <View className="bg-red-500/80 rounded-md px-2 py-0.5 mr-3">
+                    <Text className="text-white text-xs font-bold">18+</Text>
+                  </View>
+                  <Text className="text-4xl mr-3">🔥</Text>
+                  <Text className={`font-semibold text-lg ${theme.textMedium}`}>
+                    Spicy Convo
+                  </Text>
                 </View>
-                <Text className="text-4xl mr-3">🔥</Text>
-                <Text className={`font-semibold text-lg ${theme.textMedium}`}>
-                  Spicy Convo
-                </Text>
-              </View>
-              <Text className={`${theme.textAccent} text-2xl`}>›</Text>
-            </TouchableOpacity>
+                <Text className={`${theme.textAccent} text-2xl`}>›</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
 

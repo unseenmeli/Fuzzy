@@ -1,7 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 
-// Complete color themes for different chat types
 export const themes = {
   relationship: {
     gradient: ["#ffd4e5", "#d74894", "#831843", "#1a0512"] as const,
