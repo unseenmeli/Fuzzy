@@ -1,16 +1,10 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  TextInput,
-} from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, TextInput } from "react-native";
 import { router } from "expo-router";
 import { GradientBackground, themes } from "../../utils/shared";
 
-export default function LoveNotes() {
-  const theme = themes.relationship;
-
+export default function Notes() {
+  const theme = themes.friendship;
+  
   return (
     <View className="flex-1">
       <GradientBackground colors={theme.gradient} />
@@ -30,12 +24,12 @@ export default function LoveNotes() {
           <View className="flex-row items-center h-full px-4">
             <TouchableOpacity
               onPress={() => router.back()}
-              className="bg-white/10 rounded-full p-3 mr-4 border border-pink-200/20"
+              className="bg-white/10 rounded-full p-3 mr-4 border border-blue-200/20"
             >
               <Text className="text-white text-lg font-bold">&lt;</Text>
             </TouchableOpacity>
             <Text className="text-3xl text-white font-bold flex-1 text-center">
-              Love Notes
+              Notes
             </Text>
             <View className="w-14" />
           </View>
@@ -45,10 +39,8 @@ export default function LoveNotes() {
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
         <View className="py-6">
           <View className="mb-6">
-            <Text
-              className={`text-2xl font-bold text-center ${theme.text} mb-3`}
-            >
-              Express Your Love
+            <Text className={`text-2xl font-bold text-center ${theme.text} mb-3`}>
+              Share Memories
             </Text>
             <View
               style={{
@@ -62,7 +54,7 @@ export default function LoveNotes() {
               <Text
                 className={`text-center font-semibold text-lg ${theme.textMedium} mb-4`}
               >
-                Leave a sweet note for your special someone
+                Leave a note for your friend
               </Text>
               <View
                 style={{
@@ -74,50 +66,48 @@ export default function LoveNotes() {
                 className="p-4 mb-4"
               >
                 <TextInput
-                  placeholder="Type your love note here..."
+                  placeholder="Write your message here..."
                   className={`${theme.text} pb-2 text-base`}
-                  placeholderTextColor="rgba(255,182,193,0.5)"
+                  placeholderTextColor="rgba(147,197,253,0.5)"
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
                 />
               </View>
-
+              
               <View className="flex-row justify-around mb-4">
                 <TouchableOpacity className="items-center">
-                  <Text className="text-4xl mb-1">😍</Text>
-                  <Text className={`text-xs ${theme.textLight}`}>Love</Text>
+                  <Text className="text-4xl mb-1">👋</Text>
+                  <Text className={`text-xs ${theme.textLight}`}>Hey</Text>
                 </TouchableOpacity>
                 <TouchableOpacity className="items-center">
-                  <Text className="text-4xl mb-1">🥰</Text>
-                  <Text className={`text-xs ${theme.textLight}`}>Adore</Text>
+                  <Text className="text-4xl mb-1">😊</Text>
+                  <Text className={`text-xs ${theme.textLight}`}>Happy</Text>
                 </TouchableOpacity>
                 <TouchableOpacity className="items-center">
-                  <Text className="text-4xl mb-1">😘</Text>
-                  <Text className={`text-xs ${theme.textLight}`}>Kiss</Text>
+                  <Text className="text-4xl mb-1">🎉</Text>
+                  <Text className={`text-xs ${theme.textLight}`}>Party</Text>
                 </TouchableOpacity>
                 <TouchableOpacity className="items-center">
-                  <Text className="text-4xl mb-1">💝</Text>
-                  <Text className={`text-xs ${theme.textLight}`}>Gift</Text>
+                  <Text className="text-4xl mb-1">💪</Text>
+                  <Text className={`text-xs ${theme.textLight}`}>Support</Text>
                 </TouchableOpacity>
                 <TouchableOpacity className="items-center">
-                  <Text className="text-4xl mb-1">🌹</Text>
-                  <Text className={`text-xs ${theme.textLight}`}>Rose</Text>
+                  <Text className="text-4xl mb-1">🤝</Text>
+                  <Text className={`text-xs ${theme.textLight}`}>Thanks</Text>
                 </TouchableOpacity>
               </View>
 
               <TouchableOpacity
                 style={{
-                  backgroundColor: "rgba(219,39,119,0.2)",
+                  backgroundColor: "rgba(59,130,246,0.2)",
                   borderWidth: 1,
                   borderColor: theme.cardBorder,
                 }}
                 className="rounded-full py-3 px-6"
               >
-                <Text
-                  className={`text-center font-bold text-lg ${theme.textAccent}`}
-                >
-                  Send Love Note
+                <Text className={`text-center font-bold text-lg ${theme.textAccent}`}>
+                  Send Note
                 </Text>
               </TouchableOpacity>
             </View>
@@ -138,12 +128,11 @@ export default function LoveNotes() {
             >
               <View className="flex-row items-center mb-2">
                 <Text className={`flex-1 ${theme.textMedium} font-semibold`}>
-                  Yesterday at 11:23 PM
+                  Yesterday at 3:45 PM
                 </Text>
               </View>
               <Text className={`${theme.textLight}`}>
-                "You make every day brighter just by being you. I love you so
-                much!"
+                "Thanks for the help with the project! You're the best!"
               </Text>
             </View>
 
@@ -158,11 +147,11 @@ export default function LoveNotes() {
             >
               <View className="flex-row items-center mb-2">
                 <Text className={`flex-1 ${theme.textMedium} font-semibold`}>
-                  2 days ago
+                  3 days ago
                 </Text>
               </View>
               <Text className={`${theme.textLight}`}>
-                "Can't wait to see you tonight! Missing you lots"
+                "Let's hang out this weekend! Movie night?"
               </Text>
             </View>
           </View>
@@ -180,19 +169,19 @@ export default function LoveNotes() {
       >
         <View className="flex-row justify-around items-center py-4 pb-8">
           <TouchableOpacity onPress={() => router.push("/")}>
-            <Text className="text-pink-400/40 text-2xl">⌂♡</Text>
+            <Text className="text-blue-400/40 text-2xl">⌂♡</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push("/chats")}>
-            <Text className="text-pink-400/40 text-2xl">▭</Text>
+            <Text className="text-blue-400/40 text-2xl">▭</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push("/map")}>
-            <Text className="text-pink-400/40 text-2xl">○</Text>
+            <Text className="text-blue-400/40 text-2xl">○</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push("/profile")}>
-            <Text className="text-pink-400/40 text-2xl">◔</Text>
+            <Text className="text-blue-400/40 text-2xl">◔</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => {}}>
-            <Text className="text-pink-400/40 text-2xl">☰</Text>
+            <Text className="text-blue-400/40 text-2xl">☰</Text>
           </TouchableOpacity>
         </View>
       </View>
