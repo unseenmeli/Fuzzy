@@ -33,29 +33,29 @@ export default function Games_Page() {
       desc: "Choose wisely",
       route: "/mini-games/would-you-rather",
     },
-    { 
-      emoji: "💕", 
-      name: "Love Quiz", 
-      desc: "Test your bond", 
-      route: "/mini-games/love-quiz" 
+    {
+      emoji: "💕",
+      name: "Love Quiz",
+      desc: "Test your bond",
+      route: "/mini-games/love-quiz",
     },
-    { 
-      emoji: "🃏", 
-      name: "Memory Match", 
-      desc: "Match pairs", 
-      route: "/mini-games/memory-match" 
+    {
+      emoji: "🃏",
+      name: "Memory Match",
+      desc: "Match pairs",
+      route: "/mini-games/memory-match",
     },
-    { 
-      emoji: "⭕", 
-      name: "Tic Tac Toe", 
-      desc: "Classic battle", 
-      route: "/mini-games/tic-tac-toe" 
+    {
+      emoji: "⭕",
+      name: "Tic Tac Toe",
+      desc: "Classic battle",
+      route: "/mini-games/tic-tac-toe",
     },
-    { 
-      emoji: "❓", 
-      name: "20 Questions", 
-      desc: "Guess & win", 
-      route: "/mini-games/twenty-questions" 
+    {
+      emoji: "❓",
+      name: "20 Questions",
+      desc: "Guess & win",
+      route: "/mini-games/twenty-questions",
     },
     {
       emoji: "⚡",
@@ -63,23 +63,23 @@ export default function Games_Page() {
       desc: "Be the fastest",
       route: "/mini-games/reaction-time",
     },
-    { 
-      emoji: "🎨", 
-      name: "Draw Together", 
-      desc: "Create art", 
-      route: "/mini-games/draw-together" 
+    {
+      emoji: "🎨",
+      name: "Draw Together",
+      desc: "Create art",
+      route: "/mini-games/draw-together",
     },
-    { 
-      emoji: "💬", 
-      name: "Word Chain", 
-      desc: "Link words", 
-      route: "/mini-games/word-chain" 
+    {
+      emoji: "💬",
+      name: "Word Chain",
+      desc: "Link words",
+      route: "/mini-games/word-chain",
     },
-    { 
-      emoji: "😊", 
-      name: "Emoji Story", 
-      desc: "Tell tales", 
-      route: "/mini-games/emoji-story" 
+    {
+      emoji: "😊",
+      name: "Emoji Story",
+      desc: "Tell tales",
+      route: "/mini-games/emoji-story",
     },
     {
       emoji: "🎯",
@@ -93,23 +93,23 @@ export default function Games_Page() {
       desc: "Reveal secrets",
       route: "/mini-games/never-have-i",
     },
-    { 
-      emoji: "🤝", 
-      name: "Shake Match", 
-      desc: "Sync together", 
-      route: "/mini-games/shake-match" 
+    {
+      emoji: "🤝",
+      name: "Shake Match",
+      desc: "Sync together",
+      route: "/mini-games/shake-match",
     },
-    { 
-      emoji: "👆", 
-      name: "Tap Battle", 
-      desc: "Speed contest", 
-      route: "/mini-games/tap-battle" 
+    {
+      emoji: "👆",
+      name: "Tap Battle",
+      desc: "Speed contest",
+      route: "/mini-games/tap-battle",
     },
-    { 
-      emoji: "🎵", 
-      name: "Simon Says", 
-      desc: "Memory game", 
-      route: "/mini-games/simon-says" 
+    {
+      emoji: "🎵",
+      name: "Simon Says",
+      desc: "Memory game",
+      route: "/mini-games/simon-says",
     },
     {
       emoji: "🥠",
@@ -117,17 +117,17 @@ export default function Games_Page() {
       desc: "Daily fortune",
       route: "/mini-games/fortune-cookie",
     },
-    { 
-      emoji: "💑", 
-      name: "Compatibility", 
-      desc: "Match score", 
-      route: "/mini-games/compatibility" 
+    {
+      emoji: "💑",
+      name: "Compatibility",
+      desc: "Match score",
+      route: "/mini-games/compatibility",
     },
-    { 
-      emoji: "🎲", 
-      name: "Date Ideas", 
-      desc: "Spin for fun", 
-      route: "/mini-games/date-ideas" 
+    {
+      emoji: "🎲",
+      name: "Date Ideas",
+      desc: "Spin for fun",
+      route: "/mini-games/date-ideas",
     },
   ];
 
@@ -162,10 +162,7 @@ export default function Games_Page() {
         </View>
       </View>
 
-      <ScrollView
-        className="flex-1 px-4"
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
         <View className="py-6">
           <Text className={`text-xl font-bold ${theme.text} mb-4`}>
             Play Together
