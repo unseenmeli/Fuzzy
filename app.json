@@ -18,7 +18,8 @@
       "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "This app uses the camera to capture profile photos.",
-        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select profile photos."
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select profile photos.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -42,9 +43,13 @@
       ]
     ],
     "extra": {
+      "router": {
+        "origin": "/"
+      },
       "eas": {
-        "projectId": "YOUR_PROJECT_ID_HERE"
+        "projectId": "f99218b5-aa94-47a8-bc4e-d420bd264cfb"
       }
-    }
+    },
+    "owner": "unseenmeli"
   }
 }
