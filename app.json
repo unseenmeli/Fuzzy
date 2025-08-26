@@ -1,20 +1,50 @@
 {
   "expo": {
-    "scheme": "acme",
+    "name": "LongVibe",
+    "slug": "longvibe",
+    "scheme": "longvibe",
+    "version": "1.0.0",
+    "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.unseenmeli.longvibe",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to capture profile photos.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select profile photos."
+      }
+    },
+    "android": {
+      "package": "com.unseenmeli.longvibe",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
     "web": {
-      "output": "static"
+      "output": "static",
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       [
         "expo-router",
         {
-          "origin": "https://n"
+          "origin": "/"
         }
       ]
     ],
-    "name": "LongVibe",
-    "slug": "LongVibe"
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_PROJECT_ID_HERE"
+      }
+    }
   }
 }

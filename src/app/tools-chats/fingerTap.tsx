@@ -27,7 +27,7 @@ export default function FingerTap() {
               onPress={() => router.back()}
               className="bg-white/10 rounded-full p-3 mr-4 border border-green-200/20"
             >
-              <Text className="text-white text-lg font-bold">9</Text>
+              <Text className="text-white text-lg font-bold">‹</Text>
             </TouchableOpacity>
             <Text className="text-3xl text-white font-bold flex-1 text-center">
               Finger Tap

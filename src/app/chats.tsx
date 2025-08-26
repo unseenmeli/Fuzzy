@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import db from "./db";
-import { useState } from "react";
+import React, { useState } from "react";
+import { id } from "@instantdb/react-native";
 import { GradientBackground, gradients, handleSelectChat as sharedHandleSelectChat } from "../utils/shared";
 
 export default function Chats() {
@@ -19,21 +20,249 @@ export default function Chats() {
   const [alertData, setAlertData] = useState({ name: "", id: "", type: "" });
   
   // Query real data from InstantDB
+  const { data: profileData } = db.useQuery({
+    profiles: user ? { $: { where: { "owner.id": user.id } } } : {},
+  });
+  const myProfile = profileData?.profiles?.[0];
+  
+  // Check for accepted invitations that we sent and haven't processed yet
+  const { data: acceptedInviteData } = db.useQuery({
+    invitations: myProfile ? {
+      $: {
+        where: {
+          and: [
+            { status: "accepted" },
+            { senderUsername: myProfile.username },
+            { processedBySender: { $isNull: true } },
+          ],
+        },
+      },
+    } : {},
+  });
+  
+  // Auto-create chats for accepted invitations we sent
+  const acceptedSentInvites = acceptedInviteData?.invitations || [];
+  
+  React.useEffect(() => {
+    if (!user || !myProfile || acceptedSentInvites.length === 0) return;
+    
+    acceptedSentInvites.forEach(async (invite) => {
+      // Skip if already processed
+      if (invite.processedBySender) return;
+      
+      // Check if we already have this chat
+      const { data: existingChat } = await db.queryOnce({
+        relationships: invite.type === "relationship" ? {
+          $: { where: { "owner.id": user.id } }
+        } : {},
+        friendships: invite.type === "friendship" ? {
+          $: {
+            where: {
+              and: [
+                { "owner.id": user.id },
+                { friendUsername: invite.receiverUsername },
+              ],
+            },
+          },
+        } : {},
+      });
+      
+      // For relationships, check if we already have ANY relationship (only one allowed)
+      // For friendships, check if we already have this specific friend
+      const hasExisting = invite.type === "relationship" 
+        ? (existingChat.relationships?.length || 0) > 0
+        : invite.type === "friendship"
+        ? existingChat.friendships?.some(f => f.friendUsername === invite.receiverUsername)
+        : false;
+      
+      if (!hasExisting) {
+        // Create the chat on our side
+        const chatId = id();
+        try {
+          if (invite.type === "relationship") {
+            await db.transact([
+              db.tx.relationships[chatId]
+                .update({
+                  name: invite.receiverUsername || "Partner",
+                  type: "romantic",
+                  emoji: "💕",
+                  partnerUsername: invite.receiverUsername,
+                  createdAt: Date.now(),
+                })
+                .link({ owner: user.id }),
+              // Mark invitation as processed
+              db.tx.invitations[invite.id].update({
+                processedBySender: true,
+              }),
+            ]);
+          } else if (invite.type === "friendship") {
+            await db.transact([
+              db.tx.friendships[chatId]
+                .update({
+                  name: invite.receiverUsername || "Friend",
+                  type: "friend",
+                  emoji: "😊",
+                  friendUsername: invite.receiverUsername,
+                  status: "active",
+                  createdAt: Date.now(),
+                })
+                .link({ owner: user.id }),
+              // Mark invitation as processed
+              db.tx.invitations[invite.id].update({
+                processedBySender: true,
+              }),
+            ]);
+          }
+        } catch (error) {
+          console.error("Error creating chat for accepted invitation:", error);
+        }
+      } else {
+        // Mark as processed even if chat already exists
+        try {
+          await db.transact(
+            db.tx.invitations[invite.id].update({
+              processedBySender: true,
+            })
+          );
+        } catch (error) {
+          console.error("Error marking invitation as processed:", error);
+        }
+      }
+    });
+  }, [acceptedSentInvites, user, myProfile]);
+  
   const { data } = db.useQuery({
     relationships: user ? { $: { where: { "owner.id": user.id } } } : {},
     friendships: user ? { $: { where: { "owner.id": user.id } } } : {},
     groups: user ? { $: { where: { "members.id": user.id } } } : {},
+    connections: myProfile ? {
+      $: {
+        where: {
+          or: [
+            { and: [{ senderUsername: myProfile.username }, { status: "accepted" }] },
+            { and: [{ receiverUsername: myProfile.username }, { status: "accepted" }] },
+          ],
+        },
+      },
+    } : {},
   });
   
   const relationships = data?.relationships || [];
   const friendships = data?.friendships || [];
   const groups = data?.groups || [];
+  const allConnections = data?.connections || [];
+  
+  // Filter connections to exclude those already in relationships or friendships
+  const existingPartners = relationships.map(r => r.partnerUsername).filter(Boolean);
+  const existingFriends = friendships.map(f => f.friendUsername).filter(Boolean);
+  const existingUsernames = [...existingPartners, ...existingFriends];
+  
+  const connections = allConnections.filter(conn => {
+    const otherUsername = conn.senderUsername === myProfile?.username 
+      ? conn.receiverUsername 
+      : conn.senderUsername;
+    return !existingUsernames.includes(otherUsername);
+  });
+  
+  // Clean up duplicate relationships (keep only the first one)
+  React.useEffect(() => {
+    if (!user || relationships.length <= 1) return;
+    
+    // If there are multiple relationships, delete all but the first
+    const duplicates = relationships.slice(1);
+    duplicates.forEach(async (rel) => {
+      try {
+        await db.transact(db.tx.relationships[rel.id].delete());
+        console.log("Deleted duplicate relationship:", rel.id);
+      } catch (error) {
+        console.error("Error deleting duplicate relationship:", error);
+      }
+    });
+  }, [relationships, user]);
+  
+  // Get pending connection requests
+  const { data: requestData } = db.useQuery({
+    connections: myProfile ? {
+      $: {
+        where: {
+          and: [
+            { receiverUsername: myProfile.username },
+            { status: "pending" },
+          ],
+        },
+      },
+    } : {},
+  });
+  const pendingRequests = requestData?.connections || [];
+  
+  // Get pending invitations where we are the receiver
+  const { data: inviteData } = db.useQuery({
+    invitations: myProfile ? {
+      $: {
+        where: {
+          and: [
+            { status: "pending" },
+            { receiverUsername: myProfile.username },
+          ],
+        },
+      },
+    } : {},
+  });
+  
+  const pendingInvitations = inviteData?.invitations || [];
+  
+  const relationshipInvites = pendingInvitations.filter(inv => inv.type === "relationship");
+  const friendshipInvites = pendingInvitations.filter(inv => inv.type === "friendship");
+  const groupInvites = pendingInvitations.filter(inv => inv.type === "group");
+  
   const handleSelectChat = async (type: string, name: string, emoji: string, chatId?: string) => {
     setLoading(true);
     try {
       await sharedHandleSelectChat(db, user, type, name, emoji, chatId || "", () => router.back());
     } finally {
       setLoading(false);
+    }
+  };
+
+  const sendInvite = async (connectionId: string, username: string, type: string) => {
+    if (!user || !myProfile) return;
+    
+    try {
+      // Check if sender already has a relationship when trying to invite to relationship
+      if (type === "relationship") {
+        const { data: senderRelData } = await db.queryOnce({
+          relationships: { $: { where: { "owner.id": user.id } } }
+        });
+        
+        if (senderRelData?.relationships && senderRelData.relationships.length > 0) {
+          Alert.alert("Already in Relationship", "You already are in a relationship.");
+          return;
+        }
+        
+        // We can't directly check if receiver has a relationship due to InstantDB security
+        // So we'll just let them handle it when they receive the invitation
+      }
+      
+      const inviteId = id();
+      await db.transact(
+        db.tx.invitations[inviteId]
+          .update({
+            type: type,
+            status: "pending",
+            senderUsername: myProfile.username,
+            receiverUsername: username,
+            message: `${myProfile.username} wants to start a ${type} with you`,
+            createdAt: Date.now(),
+          })
+          .link({ 
+            sender: user.id,
+          })
+      );
+      
+      Alert.alert("Invitation Sent", `Invitation sent to ${username}`);
+    } catch (error) {
+      console.error("Error sending invitation:", error);
+      Alert.alert("Error", "Failed to send invitation");
     }
   };
 
@@ -95,17 +324,86 @@ export default function Chats() {
             <Text className="text-3xl text-white font-bold flex-1 text-center">
               Chats
             </Text>
-            <TouchableOpacity
-              onPress={() => router.push("/add-chat")}
-              className="bg-white/10 rounded-full p-3 ml-4 border border-green-200/20"
-            >
-              <Text className="text-white text-lg font-bold">+</Text>
-            </TouchableOpacity>
+            <View className="flex-row">
+              <TouchableOpacity
+                onPress={() => router.push("/add-chat")}
+                className="bg-white/10 rounded-full p-3 ml-2 border border-green-200/20"
+              >
+                <Text className="text-white text-lg font-bold">+</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => router.push("/connect")}
+                className="bg-white/10 rounded-full p-3 ml-2 border border-green-200/20"
+              >
+                <Text className="text-white text-lg font-bold">👤</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>
 
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
+        {/* Pending Requests */}
+        {pendingRequests.length > 0 && (
+          <View className="w-full items-center my-6">
+            <Text className="text-2xl font-bold p-2 text-yellow-300 mb-3">
+              Pending Requests ({pendingRequests.length})
+            </Text>
+            <View
+              style={{
+                backgroundColor: "rgba(250,204,21,0.1)",
+                borderRadius: 24,
+                borderWidth: 1,
+                borderColor: "rgba(250,204,21,0.25)",
+              }}
+              className="w-full p-5 shadow-xl"
+            >
+              {pendingRequests.map((req) => (
+                <View
+                  key={req.id}
+                  style={{ backgroundColor: "rgba(0,0,0,0.2)" }}
+                  className="flex-row items-center justify-between rounded-xl p-4 border border-yellow-300/20 mb-2"
+                >
+                  <View className="flex-row items-center">
+                    <Text className="text-4xl mr-4">👤</Text>
+                    <View>
+                      <Text className="font-semibold text-lg text-white">
+                        {req.senderUsername}
+                      </Text>
+                      <Text className="text-sm text-yellow-300">
+                        Wants to connect
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="flex-row">
+                    <TouchableOpacity
+                      onPress={async () => {
+                        await db.transact(
+                          db.tx.connections[req.id].update({
+                            status: "accepted",
+                            acceptedAt: Date.now(),
+                          })
+                        );
+                      }}
+                      className="bg-green-500/30 px-3 py-2 rounded-lg mr-2"
+                    >
+                      <Text className="text-white">✓</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={async () => {
+                        await db.transact(db.tx.connections[req.id].delete());
+                      }}
+                      className="bg-red-500/30 px-3 py-2 rounded-lg"
+                    >
+                      <Text className="text-white">✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
         <View className="w-full items-center my-6">
           <Text className="text-2xl font-bold p-2 text-white/90 mb-3">
             Relationship
@@ -119,6 +417,88 @@ export default function Chats() {
             }}
             className="w-full p-5 shadow-xl"
           >
+            {/* Show pending relationship invitations */}
+            {relationshipInvites.map((invite) => {
+              const senderName = invite.senderUsername;
+              
+              return (
+                <View
+                  key={invite.id}
+                  style={{ backgroundColor: "rgba(255,200,0,0.1)" }}
+                  className="flex-row items-center justify-between rounded-xl p-4 border border-yellow-400/30 mb-2"
+                >
+                  <View className="flex-row items-center">
+                    <Text className="text-4xl mr-4">💕</Text>
+                    <View>
+                      <Text className="font-semibold text-lg text-white">
+                        {senderName}
+                      </Text>
+                      <Text className="text-sm text-yellow-300">
+                        Wants to start a relationship
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="flex-row">
+                    <TouchableOpacity
+                      onPress={async () => {
+                        // Check if we already have a relationship
+                        const { data: existingRel } = await db.queryOnce({
+                          relationships: { $: { where: { "owner.id": user?.id } } }
+                        });
+                        
+                        if (existingRel?.relationships && existingRel.relationships.length > 0) {
+                          Alert.alert("Already in Relationship", "You already are in a relationship.");
+                          // Decline the invitation automatically
+                          await db.transact(
+                            db.tx.invitations[invite.id].update({
+                              status: "declined",
+                              respondedAt: Date.now(),
+                            })
+                          );
+                          return;
+                        }
+                        
+                        // Accept invitation and create relationship for receiver
+                        const relId = id();
+                        await db.transact([
+                          db.tx.invitations[invite.id].update({
+                            status: "accepted",
+                            respondedAt: Date.now(),
+                          }),
+                          db.tx.relationships[relId]
+                            .update({
+                              name: senderName || "Partner",
+                              type: "romantic",
+                              emoji: "💕",
+                              partnerUsername: senderName,
+                              createdAt: Date.now(),
+                            })
+                            .link({ owner: user?.id })
+                        ]);
+                        Alert.alert("Accepted!", `You're now in a relationship with ${senderName}. They will see the chat shortly.`);
+                      }}
+                      className="bg-green-500/30 px-3 py-2 rounded-lg mr-2"
+                    >
+                      <Text className="text-white">✓</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={async () => {
+                        await db.transact(
+                          db.tx.invitations[invite.id].update({
+                            status: "declined",
+                            respondedAt: Date.now(),
+                          })
+                        );
+                      }}
+                      className="bg-red-500/30 px-3 py-2 rounded-lg"
+                    >
+                      <Text className="text-white">✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
+            
             {relationships.length > 0 ? (
               relationships.map((rel) => (
                 <TouchableOpacity
@@ -179,6 +559,72 @@ export default function Chats() {
             }}
             className="w-full p-5 shadow-xl"
           >
+            {/* Show pending friendship invitations */}
+            {friendshipInvites.map((invite) => {
+              const senderName = invite.senderUsername;
+              
+              return (
+                <View
+                  key={invite.id}
+                  style={{ backgroundColor: "rgba(255,200,0,0.1)" }}
+                  className="flex-row items-center justify-between rounded-xl p-4 border border-yellow-400/30 mb-2"
+                >
+                  <View className="flex-row items-center">
+                    <Text className="text-4xl mr-4">😊</Text>
+                    <View>
+                      <Text className="font-semibold text-lg text-white">
+                        {senderName}
+                      </Text>
+                      <Text className="text-sm text-yellow-300">
+                        Wants to be friends
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="flex-row">
+                    <TouchableOpacity
+                      onPress={async () => {
+                        // Accept invitation and create friendship
+                        const friendId = id();
+                        await db.transact([
+                          db.tx.invitations[invite.id].update({
+                            status: "accepted",
+                            respondedAt: Date.now(),
+                          }),
+                          db.tx.friendships[friendId]
+                            .update({
+                              name: senderName || "Friend",
+                              type: "friend",
+                              emoji: "😊",
+                              friendUsername: senderName,
+                              status: "active",
+                              createdAt: Date.now(),
+                            })
+                            .link({ owner: user?.id })
+                        ]);
+                        Alert.alert("Accepted!", `You're now friends with ${senderName}. They will see the chat shortly.`);
+                      }}
+                      className="bg-green-500/30 px-3 py-2 rounded-lg mr-2"
+                    >
+                      <Text className="text-white">✓</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={async () => {
+                        await db.transact(
+                          db.tx.invitations[invite.id].update({
+                            status: "declined",
+                            respondedAt: Date.now(),
+                          })
+                        );
+                      }}
+                      className="bg-red-500/30 px-3 py-2 rounded-lg"
+                    >
+                      <Text className="text-white">✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
+            
             {friendships.length > 0 ? (
               friendships.map((friend) => (
                 <TouchableOpacity
@@ -285,6 +731,63 @@ export default function Chats() {
             )}
           </View>
         </View>
+
+        {/* Connections - Now at the bottom */}
+        {connections.length > 0 && (
+          <View className="w-full items-center my-6">
+            <Text className="text-2xl font-bold p-2 text-blue-300 mb-3">
+              Connections
+            </Text>
+            <View
+              style={{
+                backgroundColor: "rgba(59,130,246,0.1)",
+                borderRadius: 24,
+                borderWidth: 1,
+                borderColor: "rgba(147,197,253,0.25)",
+              }}
+              className="w-full p-5 shadow-xl"
+            >
+              {connections.map((conn) => {
+                const displayName = conn.senderUsername === myProfile?.username 
+                  ? conn.receiverUsername 
+                  : conn.senderUsername;
+                
+                return (
+                  <TouchableOpacity
+                    key={conn.id}
+                    style={{ backgroundColor: "rgba(0,0,0,0.2)" }}
+                    className="flex-row items-center justify-between rounded-xl p-4 border border-blue-300/20 mb-2"
+                    onPress={() => {
+                      Alert.alert(
+                        "Invite to",
+                        `Invite ${displayName} to:`,
+                        [
+                          { text: "Relationship", onPress: () => sendInvite(conn.id, displayName, "relationship") },
+                          { text: "Friendship", onPress: () => sendInvite(conn.id, displayName, "friendship") },
+                          { text: "Group", onPress: () => sendInvite(conn.id, displayName, "group") },
+                          { text: "Cancel", style: "cancel" },
+                        ]
+                      );
+                    }}
+                  >
+                    <View className="flex-row items-center">
+                      <Text className="text-4xl mr-4">🔗</Text>
+                      <View>
+                        <Text className="font-semibold text-lg text-white">
+                          {displayName}
+                        </Text>
+                        <Text className="text-sm text-blue-300">
+                          Connected
+                        </Text>
+                      </View>
+                    </View>
+                    <Text className="text-white/80 text-2xl">+</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
         <View className="h-24" />
       </ScrollView>
