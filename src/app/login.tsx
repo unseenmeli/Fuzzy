@@ -9,6 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import db from "./db";
 
 export default function Login() {
@@ -79,15 +80,22 @@ function EmailStep({ onSendEmail }: { onSendEmail: (email: string) => void }) {
 
 function CodeStep({ sentEmail }: { sentEmail: string }) {
   const [code, setCode] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
-    if (!code) return;
-    db.auth
-      .signInWithMagicCode({ email: sentEmail, code })
-      .catch((err: any) => {
-        setCode("");
-        Alert.alert("Uh oh", err.body?.message || "Invalid code");
-      });
+  const handleSubmit = async () => {
+    if (!code || loading) return;
+    
+    setLoading(true);
+    try {
+      await db.auth.signInWithMagicCode({ email: sentEmail, code });
+      // Success! Just let the auth state update trigger the redirect
+      // The index.tsx will handle navigation based on auth state
+      // Don't navigate here - just wait for auth state to update
+    } catch (err: any) {
+      setCode("");
+      Alert.alert("Uh oh", err.body?.message || "Invalid code");
+      setLoading(false);
+    }
   };
 
   return (
@@ -109,9 +117,12 @@ function CodeStep({ sentEmail }: { sentEmail: string }) {
       />
       <TouchableOpacity
         onPress={handleSubmit}
-        className="px-3 py-2 bg-pink-600 rounded-lg w-full"
+        disabled={loading || !code}
+        className={`px-3 py-2 rounded-lg w-full ${loading || !code ? 'bg-pink-600/50' : 'bg-pink-600'}`}
       >
-        <Text className="text-white font-bold text-center">Verify Code</Text>
+        <Text className="text-white font-bold text-center">
+          {loading ? "Verifying..." : "Verify Code"}
+        </Text>
       </TouchableOpacity>
     </View>
   );

@@ -1,0 +1,195 @@
+================================================================================
+LONGVIBE (FUZZY) PROJECT DOCUMENTATION
+================================================================================
+Project: Social Connection & Messaging App
+Date: August 26, 2025
+Developer: Claude (Anthropic)
+================================================================================
+
+## PROJECT OVERVIEW
+--------------------------------------------------------------------------------
+LongVibe is a React Native social connection app built with Expo that allows 
+users to connect with friends, form relationships, and communicate through 
+real-time messaging. The app uses InstantDB for real-time data synchronization 
+and NativeWind (TailwindCSS) for styling.
+
+## TECHNICAL STACK
+--------------------------------------------------------------------------------
+- React Native with Expo (v53.0.4)
+- TypeScript for type safety
+- InstantDB for real-time database (@instantdb/react-native)
+- NativeWind for styling (TailwindCSS for React Native)
+- Expo Router for file-based navigation
+- Magic link authentication system
+- Environment variables for API configuration
+
+## FEATURES IMPLEMENTED
+--------------------------------------------------------------------------------
+
+### 1. AUTHENTICATION SYSTEM
+- Magic link email authentication via InstantDB
+- Username selection after first login (permanent, cannot be changed)
+- Auto-generated friend codes (format: ABC-XYZ) for connecting with others
+- Profile creation linked to user account
+
+### 2. CONNECTION SYSTEM
+- Friend code-based connection requests
+- Accept/decline functionality for connection requests
+- Real-time status updates (pending/accepted/blocked)
+- Connections appear as a separate category in chats
+
+### 3. INVITATION SYSTEM
+- Invite connections to become relationships, friendships, or join groups
+- Single relationship constraint (only one romantic relationship allowed)
+- Invitation validation to prevent duplicate relationships
+- Bilateral chat creation when invitations are accepted
+
+### 4. CHAT SYSTEM
+- Three chat types: Relationships, Friendships, Groups
+- Dynamic theming based on chat type
+- Chat selection persists across sessions
+- Long-press to delete chats
+
+### 5. REAL-TIME MESSAGING
+- Instant message synchronization between users
+- Message history preservation
+- Sender/receiver identification
+- Timestamps for all messages
+- Auto-scroll to latest messages
+- Support for multi-line messages
+
+### 6. USER INTERFACE
+- Gradient backgrounds with dynamic theming
+- Custom header and footer components
+- Responsive design for different screen sizes
+- Smooth animations and transitions
+- Modal alerts for important actions
+
+## DATABASE SCHEMA
+--------------------------------------------------------------------------------
+
+### Entities:
+1. **profiles**: Username, friend code, creation timestamp
+2. **connections**: Status, sender/receiver usernames, timestamps
+3. **invitations**: Type, status, sender/receiver, messages, timestamps
+4. **relationships**: Name, type, emoji, partner username, mood, notes
+5. **friendships**: Name, type, emoji, friend username, status
+6. **groups**: Name, type, member count, emoji
+7. **choice**: Active chat selection (type, ID, name, emoji)
+8. **messages**: Text, chat type, sender/receiver, timestamps, read status
+
+### Relationships:
+- Users linked to profiles (one-to-one)
+- Users linked to connections (many-to-many)
+- Users linked to invitations (many-to-many)
+- Users linked to relationships/friendships/groups
+- Messages linked to users and chats
+
+## KEY ARCHITECTURAL DECISIONS
+--------------------------------------------------------------------------------
+
+### 1. USERNAME-BASED MATCHING
+Due to InstantDB security constraints preventing cross-user data access, the 
+system uses usernames for matching instead of user IDs. This allows users to 
+find and connect with each other without accessing private user data.
+
+### 2. BILATERAL CHAT CREATION
+When an invitation is accepted, the app uses a polling mechanism where each 
+user creates their own chat record. The sender monitors for accepted invitations 
+and automatically creates their side of the chat.
+
+### 3. CONNECTION FILTERING
+Connections only show users not already in active relationships or friendships.
+Once a connection is elevated to a relationship/friendship, they disappear from 
+the connections list.
+
+### 4. SINGLE RELATIONSHIP CONSTRAINT
+Each user can only have one romantic relationship at a time. The system enforces 
+this through validation at multiple points (invitation sending, accepting, UI).
+
+## FILE STRUCTURE
+--------------------------------------------------------------------------------
+/src/app/
+├── index.tsx           # Home screen with chat selection
+├── login.tsx           # Magic link authentication
+├── username-setup.tsx  # Username and friend code setup
+├── profile.tsx        # User profile with friend code display
+├── chats.tsx          # Chat list with connections/invitations
+├── add-chat.tsx       # Invite connections to chats
+├── connect.tsx        # Enter friend codes to connect
+├── message.tsx        # Real-time messaging interface
+├── db.ts             # Database configuration
+└── _layout.tsx       # Root layout with auth provider
+
+/src/
+├── instant.schema.ts  # Database schema definition
+└── utils/
+    └── shared.tsx    # Shared components and utilities
+
+## KNOWN LIMITATIONS & FUTURE IMPROVEMENTS
+--------------------------------------------------------------------------------
+
+### Current Limitations:
+1. Cannot directly check if another user has a relationship (security model)
+2. Group messaging partially implemented but not fully functional
+3. No media sharing (photos, videos, voice messages)
+4. No push notifications for new messages
+5. No online/offline status indicators
+6. No message deletion or editing
+7. No message search functionality
+
+### Security Considerations:
+1. API keys should be properly secured in production
+2. Input validation needs strengthening
+3. Rate limiting should be implemented
+4. Message content should be sanitized
+
+### Performance Optimizations Needed:
+1. Message pagination for large conversations
+2. Image caching and optimization
+3. Database query batching
+4. Component memoization for better performance
+
+### Future Features (Commented Out):
+1. Games section for couples/friends
+2. Star Gazing feature
+3. Future Planning tool
+4. Map/location sharing
+5. Spicy Conversations (18+ content)
+
+## DEPLOYMENT CHECKLIST
+--------------------------------------------------------------------------------
+[ ] Move API keys to secure environment variables
+[ ] Implement proper error boundaries
+[ ] Add crash reporting (Sentry/Bugsnag)
+[ ] Set up push notifications
+[ ] Implement message pagination
+[ ] Add input validation and sanitization
+[ ] Set up rate limiting
+[ ] Add analytics tracking
+[ ] Implement proper logging
+[ ] Add app store assets and descriptions
+[ ] Test on physical devices
+[ ] Set up CI/CD pipeline
+
+## TESTING RECOMMENDATIONS
+--------------------------------------------------------------------------------
+1. Test connection flow between multiple accounts
+2. Verify relationship constraints work correctly
+3. Test message delivery in poor network conditions
+4. Verify chat persistence across app restarts
+5. Test with maximum length inputs
+6. Verify proper cleanup when deleting chats
+7. Test concurrent user actions
+
+## MAINTENANCE NOTES
+--------------------------------------------------------------------------------
+- Database schema changes require migration planning
+- InstantDB security rules may need adjustment for new features
+- Regular monitoring of real-time sync performance recommended
+- Consider implementing message archiving for old conversations
+- Monitor friend code collision rate as user base grows
+
+================================================================================
+END OF DOCUMENTATION
+================================================================================

@@ -1,18 +1,23 @@
-import React, { use, useState } from "react";
+import React from "react";
 import { View, Text, TouchableOpacity, Image, ScrollView } from "react-native";
 import { router } from "expo-router";
 import db from "./db";
 import Login from "./login";
+import UsernameSetup from "./username-setup";
 import { GradientBackground, themes } from "../utils/shared";
 
 export default function Home() {
   const { user, isLoading } = db.useAuth();
+  const { data: profileData } = db.useQuery({
+    profiles: user ? { $: { where: { "owner.id": user.id } } } : {},
+  });
   const { data: choiceData } = db.useQuery({
     choice: user ? { $: { where: { "owner.id": user.id } } } : {},
     relationships: user ? { $: { where: { "owner.id": user.id } } } : {},
     friendships: user ? { $: { where: { "owner.id": user.id } } } : {},
     groups: user ? { $: { where: { "members.id": user.id } } } : {},
   });
+  const userProfile = profileData?.profiles?.[0];
   const choice = choiceData?.choice?.[0];
 
   const getActiveChat = () => {
@@ -30,6 +35,8 @@ export default function Home() {
 
   const activeChat = getActiveChat();
   const theme = themes[choice?.activeType] || themes.relationship;
+
+  // Show loading while checking auth status
   if (isLoading) {
     return (
       <View className="flex-1">
@@ -41,8 +48,26 @@ export default function Home() {
     );
   }
 
+  // Not logged in - show login component directly
   if (!user) {
     return <Login />;
+  }
+
+  // Still loading profile data
+  if (profileData === undefined) {
+    return (
+      <View className="flex-1">
+        <GradientBackground colors={themes.relationship.gradient} />
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-white text-xl">Loading profile...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // User needs to set up username - show username setup component directly
+  if (!userProfile) {
+    return <UsernameSetup />;
   }
 
   return (
@@ -202,7 +227,7 @@ export default function Home() {
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
               className="flex-row items-center justify-between rounded-xl p-4 border border-pink-200/30"
               onPress={() => {
@@ -216,7 +241,7 @@ export default function Home() {
                 </Text>
               </View>
               <Text className={`${theme.textAccent} text-2xl`}>›</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         </View>
 
@@ -239,6 +264,7 @@ export default function Home() {
                 borderColor: theme.innerCardBorder,
               }}
               className="flex-row items-center justify-between mb-4 rounded-xl p-4 border"
+              onPress={() => router.push("/message")}
             >
               <View className="flex-row items-center">
                 <Text className="text-4xl mr-4">💬</Text>
@@ -249,7 +275,7 @@ export default function Home() {
               <Text className={`${theme.textAccent} text-2xl`}>›</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={{
                 backgroundColor: theme.innerCard,
                 borderColor: theme.innerCardBorder,
@@ -279,7 +305,7 @@ export default function Home() {
                 </Text>
               </View>
               <Text className={`${theme.textAccent} text-2xl`}>›</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             {choice?.activeType === "relationship" ? (
               <TouchableOpacity
@@ -324,12 +350,12 @@ export default function Home() {
           >
             <Text className={`text-2xl ${theme.textAccent}/40`}>▭</Text>
           </TouchableOpacity>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             className="items-center px-4"
             onPress={() => router.push("/map")}
           >
             <Text className={`text-2xl ${theme.textAccent}/40`}>○</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <TouchableOpacity
             className="items-center px-4"
             onPress={() => router.push("/profile")}

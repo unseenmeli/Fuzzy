@@ -1,8 +1,15 @@
-import { View, Text, TouchableOpacity, Image, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, Image, ScrollView, Alert } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import db from "./db";
+import * as Clipboard from 'expo-clipboard';
 
 export default function Profile() {
+  const { user } = db.useAuth();
+  const { data } = db.useQuery({
+    profiles: user ? { $: { where: { "owner.id": user.id } } } : {},
+  });
+  const userProfile = data?.profiles?.[0];
   return (
     <View className="flex-1">
       <LinearGradient
@@ -29,9 +36,9 @@ export default function Profile() {
               />
             </View>
             <View>
-              <Text className="text-4xl text-white font-bold">David</Text>
+              <Text className="text-4xl text-white font-bold">{userProfile?.username || "User"}</Text>
               <Text className="text-sm text-purple-300/80 mt-1">
-                Connected 💕
+                @{userProfile?.username || "username"}
               </Text>
             </View>
           </View>
@@ -39,6 +46,40 @@ export default function Profile() {
       </View>
 
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
+        {/* Friend Code Section */}
+        <View className="w-full items-center my-6">
+          <Text className="text-2xl font-bold p-2 text-purple-200/90 mb-3">
+            Your Friend Code
+          </Text>
+          <View
+            style={{
+              backgroundColor: "rgba(135,72,215,0.1)",
+              borderRadius: 24,
+              borderWidth: 1,
+              borderColor: "rgba(228,212,255,0.25)",
+            }}
+            className="w-full p-5 shadow-xl"
+          >
+            <TouchableOpacity
+              onPress={async () => {
+                if (userProfile?.friendCode) {
+                  await Clipboard.setStringAsync(userProfile.friendCode);
+                  Alert.alert("Copied!", "Friend code copied to clipboard");
+                }
+              }}
+              style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
+              className="rounded-xl p-4 border border-purple-200/30"
+            >
+              <Text className="text-3xl font-mono text-white text-center mb-2">
+                {userProfile?.friendCode || "Loading..."}
+              </Text>
+              <Text className="text-sm text-purple-300/60 text-center">
+                Tap to copy • Share this code with friends
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <View className="w-full items-center my-6">
           <Text className="text-2xl font-bold p-2 text-purple-200/90 mb-3">
             Set your mood
